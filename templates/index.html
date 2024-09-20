@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='output.css') }}" type="text/css" >
+</head>
+<body class="bg-gray-300">
+
+    <!-- Navigation bar -->
+    <header class="bg-gray-300 py-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-balck text-2xl font-semibold">Welcome to Our Website</h1>
+            <nav>
+                <ul class="flex space-x-4 text-2xl font-semibold">
+                    <li><a href="/" class="text-black">Home</a></li>
+                    <li><a href="/about" class="text-black">About</a></li>
+                    <li><a href="/contact" class="text-black">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="mt-8 w-full justify-center">
+        <div class="flex flex-col p-10 w-full items-center">
+            <button id="createJobBtn" class="flex px-4 py-2 rounded-md border w-max font-semibold text-xl border-black">
+                Create Job
+            </button>
+        </div>
+        <div class="flex w-full border border-gray-400"></div>
+        <div class="flex bg-[#e6e6e6] py-5">
+            <div class="flex flex-row flex-wrap justify-between gap-y-12 w-[90%] m-auto" id="jobListContainer">
+                <!-- Job cards will be added here dynamically -->
+            </div>
+        </div>
+        <!-- Modal -->
+        <div id="modal" class="hidden fixed z-10 inset-0 overflow-y-auto">
+            <!-- Modal Content -->
+            <div class="flex items-center justify-center min-h-screen">
+                <div class="bg-white p-8 rounded-lg">
+                    <!-- Form will be loaded here dynamically -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById("modal");
+            const createJobBtn = document.getElementById("createJobBtn");
+            const jobListContainer = document.getElementById("jobListContainer");
+            const formContainer = document.getElementById("formContainer");
+
+            createJobBtn.addEventListener("click", function () {
+                showModal(null);
+            });
+
+            async function showModal(editedJob) {
+                modal.classList.remove("hidden");
+                // Load form dynamically
+                const form = document.createElement("div")
+                form.innerHTML = `
+                    <div>
+                        <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <div class="flex flex-col gap-6">
+                            <div class="flex w-full justify-end">
+                                <button id="submitBtn" class="px-4 py-2 rounded-md bg-[#1597E4] text-white">
+                                    ${editedJob ? "Update" : "Save"}
+                                </button>
+                            </div>
+                        </div>
+                    </div> 
+                `
+                formContainer.innerHTML = '';
+                formContainer.appendChild(form);
+                loadForm(editedJob);
+            }
+
+            function loadForm(editedJob) {
+                // Fetch and load form HTML using AJAX
+                fetch('form.html')
+                    .then(response => response.text())
+                    .then(html => {
+                        modal.querySelector(".bg-white").innerHTML = html;
+                        // Add event listeners and functionality to form elements if needed
+                    })
+                    .catch(error => console.error('Error loading form:', error));
+            }
+
+            function hideModal() {
+                modal.classList.add("hidden");
+                // Reset modal content if needed
+                modal.querySelector(".bg-white").innerHTML = "";
+            }
+
+            // Function to create job card HTML
+            function createJobCard(job) {
+                return `<div class="flex flex-col w-full bg-white p-6 rounded-lg border border-gray-300">
+                            <h2 class="text-xl font-semibold">${job.title}</h2>
+                            <!-- Job details will be displayed here -->
+                            <button class="mt-4 px-4 py-2 bg-gray-800 text-white rounded-md" onclick="editJob(${job.id})">Edit</button>
+                            <button class="mt-2 px-4 py-2 bg-red-600 text-white rounded-md" onclick="deleteJob(${job.id})">Delete</button>
+                        </div>`;
+            }
+
+            // Function to render job list
+            function renderJobList(jobList) {
+                jobListContainer.innerHTML = "";
+                jobList.forEach(job => {
+                    jobListContainer.innerHTML += createJobCard(job);
+                });
+            }
+
+            // Sample job data
+            let jobList = [];
+
+            // Function to fetch job list
+            function fetchJobList() {
+                fetch('https://6555b88984b36e3a431e30d7.mockapi.io/api/job')
+                    .then(response => response.json())
+                    .then(data => {
+                        jobList = data;
+                        renderJobList(jobList);
+                    })
+                    .catch(error => console.error('Error fetching job list:', error));
+            }
+
+            fetchJobList();
+
+            // Function to edit job
+            function editJob(jobId) {
+                const editedJob = jobList.find(job => job.id === jobId);
+                showModal(editedJob);
+            }
+
+            // Function to delete job
+            function deleteJob(jobId) {
+                fetch(`https://6555b88984b36e3a431e30d7.mockapi.io/api/job/${jobId}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            jobList = jobList.filter(job => job.id !== jobId);
+                            renderJobList(jobList);
+                        } else {
+                            console.error('Error deleting job:', response.statusText);
+                        }
+                    })
+                    .catch(error => console.error('Error deleting job:', error));
+            }
+        });
+    </script>
+</body>
+</html>
